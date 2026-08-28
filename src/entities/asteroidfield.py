@@ -3,8 +3,15 @@ from collections.abc import Callable
 
 import pygame
 
-from asteroid import Asteroid
-from constants import *
+from constants import (
+    ASTEROID_KINDS,
+    ASTEROID_MAX_RADIUS,
+    ASTEROID_MIN_RADIUS,
+    ASTEROID_SPAWN_RATE_SECONDS,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
+from entities.asteroid import Asteroid
 
 Edge = tuple[pygame.Vector2, Callable[[float], pygame.Vector2]]
 

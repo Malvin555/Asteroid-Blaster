@@ -9,6 +9,7 @@ from constants import (
 )
 from entities.circleshape import CircleShape
 from entities.shot import Shot
+from utils.assets import AssetLoader
 
 
 class Player(CircleShape):
@@ -18,7 +19,7 @@ class Player(CircleShape):
         self.rotation = 0
         self.shoot_cooldown = 0
 
-        self.image = pygame.image.load("assets/images/player.png").convert_alpha()
+        self.image = AssetLoader.get_image("assets/images/player.png")
 
     def draw(self, screen: pygame.Surface) -> None:
         image = pygame.transform.rotate(

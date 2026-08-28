@@ -2,40 +2,59 @@ import random
 
 import pygame
 
-from constants import ASTEROID_KINDS, ASTEROID_MIN_RADIUS
+from constants import (
+    ASTEROID_BLINK_INTERVAL,
+    ASTEROID_BLINK_TIME,
+    ASTEROID_KINDS,
+    ASTEROID_LARGE_SPEED,
+    ASTEROID_LIFETIME,
+    ASTEROID_MEDIUM_SPEED,
+    ASTEROID_MIN_RADIUS,
+    ASTEROID_SMALL_SPEED,
+)
 from entities.circleshape import CircleShape
+from utils.assets import AssetLoader
 from utils.logger import log_event
 
 
 class Asteroid(CircleShape):
-    def __init__(self, x: float, y: float, radius: float) -> None:
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        radius: float,
+    ) -> None:
         super().__init__(x, y, radius)
 
         self.score = (ASTEROID_KINDS - (radius // ASTEROID_MIN_RADIUS) + 1) * 10
 
-        self.image = self._load_image()
+        self.image = AssetLoader.get_asteroid_image(self.radius)
 
         self.rotation = random.uniform(0, 360)
         self.rotation_speed = random.uniform(-100, 100)
 
-    def _load_image(self) -> pygame.Surface:
-        if self.radius == ASTEROID_MIN_RADIUS:
-            path = "assets/images/asteroid_small.png"
-        elif self.radius == ASTEROID_MIN_RADIUS * 2:
-            path = "assets/images/asteroid_medium.png"
-        else:
-            path = "assets/images/asteroid_large.png"
+        self.lifetime = ASTEROID_LIFETIME
 
-        image = pygame.image.load(path).convert_alpha()
+        self.speed = self._get_speed()
 
-        diameter = int(self.radius * 2)
+        self.velocity = pygame.Vector2(0, 1).rotate(random.uniform(0, 360)) * self.speed
 
-        return pygame.transform.scale(
-            image,
-            (diameter, diameter),
-        )
+    def _get_speed(self) -> float:
+        if self.radius <= ASTEROID_MIN_RADIUS:
+            return ASTEROID_SMALL_SPEED
+
+        if self.radius <= ASTEROID_MIN_RADIUS * 2:
+            return ASTEROID_MEDIUM_SPEED
+
+        return ASTEROID_LARGE_SPEED
 
     def draw(self, screen: pygame.Surface) -> None:
+        if self.lifetime <= ASTEROID_BLINK_TIME:
+            blink = int(self.lifetime / ASTEROID_BLINK_INTERVAL)
+
+            if blink % 2 == 0:
+                return
+
         image = pygame.transform.rotate(
             self.image,
             self.rotation,
@@ -49,7 +68,13 @@ class Asteroid(CircleShape):
 
     def update(self, dt: float) -> None:
         self.position += self.velocity * dt
+
         self.rotation += self.rotation_speed * dt
+
+        self.lifetime -= dt
+
+        if self.lifetime <= 0:
+            self.kill()
 
     def split(self) -> None:
         self.kill()

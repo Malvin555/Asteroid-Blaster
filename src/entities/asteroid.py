@@ -77,8 +77,16 @@ class Asteroid(CircleShape):
             self.kill()
 
     def split(self) -> None:
+        # Load sound only when an asteroid is destroyed.
+        # AssetLoader caches it after the first load.
+        destroy_sound = AssetLoader.get_sound("assets/sounds/destroyed.mp3")
+
+        if destroy_sound:
+            destroy_sound.play()
+
         self.kill()
 
+        # Small asteroids disappear without splitting.
         if self.radius <= ASTEROID_MIN_RADIUS:
             return
 

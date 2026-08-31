@@ -11,9 +11,15 @@ class Shot(CircleShape):
 
         self.image = AssetLoader.get_image("assets/images/shot.png")
 
+        self.shoot_sound = AssetLoader.get_sound("assets/sounds/shoot.mp3")
+
+        if self.shoot_sound:
+            self.shoot_sound.play()
+
     def draw(self, screen: pygame.Surface) -> None:
-        rect = self.image.get_rect(center=self.position)
-        screen.blit(self.image, rect)
+        if self.image:
+            rect = self.image.get_rect(center=self.position)
+            screen.blit(self.image, rect)
 
     def update(self, dt: float) -> None:
         self.position += self.velocity * dt

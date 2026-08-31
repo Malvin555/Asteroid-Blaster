@@ -8,6 +8,7 @@ from constants import ASTEROID_MIN_RADIUS
 class AssetLoader:
     _asteroid_images: dict[int, pygame.Surface] = {}
     _images: dict[str, pygame.Surface] = {}
+    _sounds: dict[str, pygame.mixer.Sound] = {}
 
     @classmethod
     def get_image(cls, path: str) -> pygame.Surface | None:
@@ -21,6 +22,19 @@ class AssetLoader:
         cls._images[path] = image
 
         return image
+
+    @classmethod
+    def get_sound(cls, path: str) -> pygame.mixer.Sound | None:
+        if path in cls._sounds:
+            return cls._sounds[path]
+
+        if not os.path.exists(path):
+            return None
+
+        sound = pygame.mixer.Sound(path)
+        cls._sounds[path] = sound
+
+        return sound
 
     @classmethod
     def get_asteroid_image(cls, radius: float) -> pygame.Surface:

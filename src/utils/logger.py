@@ -2,6 +2,7 @@ import inspect
 import json
 import math
 from datetime import datetime
+from pathlib import Path
 from typing import NotRequired, TypedDict
 
 
@@ -20,6 +21,18 @@ class GroupInfo(TypedDict):
 
 __all__ = ["log_state", "log_event"]
 
+
+DATA_DIR = Path("data")
+
+DATA_DIR.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+STATE_LOG_FILE = DATA_DIR / "game_state.jsonl"
+EVENT_LOG_FILE = DATA_DIR / "game_events.jsonl"
+
+
 _FPS = 60
 _MAX_SECONDS = 16
 _SPRITE_SAMPLE_LIMIT = 10
@@ -37,16 +50,19 @@ def log_state() -> None:
         return
 
     _frame_count += 1
+
     if _frame_count % _FPS != 0:
         return
 
     now = datetime.now()
 
     frame = inspect.currentframe()
+
     if frame is None:
         return
 
     frame_back = frame.f_back
+
     if frame_back is None:
         return
 
@@ -54,7 +70,6 @@ def log_state() -> None:
 
     screen_size: list[int] = []
     game_state: dict[str, object] = {}
-    sprite_info: SpriteInfo
 
     for key, value in local_vars.items():
         if "pygame" in str(type(value)) and hasattr(value, "get_size"):
@@ -67,7 +82,7 @@ def log_state() -> None:
                 if i >= _SPRITE_SAMPLE_LIMIT:
                     break
 
-                sprite_info = {"type": sprite.__class__.__name__}
+                sprite_info: SpriteInfo = {"type": sprite.__class__.__name__}
 
                 if hasattr(sprite, "position"):
                     sprite_info["pos"] = [
@@ -85,16 +100,22 @@ def log_state() -> None:
                     sprite_info["rad"] = sprite.radius
 
                 if hasattr(sprite, "rotation"):
-                    sprite_info["rot"] = round(sprite.rotation, 2)
+                    sprite_info["rot"] = round(
+                        sprite.rotation,
+                        2,
+                    )
 
                 sprites_data.append(sprite_info)
 
-            group_info: GroupInfo = {"count": len(value), "sprites": sprites_data}
+            group_info: GroupInfo = {
+                "count": len(value),
+                "sprites": sprites_data,
+            }
 
             game_state[key] = group_info
 
-        if len(game_state) == 0 and hasattr(value, "position"):
-            sprite_info = {"type": value.__class__.__name__}
+        elif hasattr(value, "position"):
+            sprite_info: SpriteInfo = {"type": value.__class__.__name__}
 
             sprite_info["pos"] = [
                 round(value.position.x, 2),
@@ -111,7 +132,10 @@ def log_state() -> None:
                 sprite_info["rad"] = value.radius
 
             if hasattr(value, "rotation"):
-                sprite_info["rot"] = round(value.rotation, 2)
+                sprite_info["rot"] = round(
+                    value.rotation,
+                    2,
+                )
 
             game_state[key] = sprite_info
 
@@ -124,13 +148,22 @@ def log_state() -> None:
     }
 
     mode = "w" if not _state_log_initialized else "a"
-    with open("game_state.jsonl", mode) as f:
+
+    with open(
+        STATE_LOG_FILE,
+        mode,
+        encoding="utf-8",
+    ) as f:
         f.write(json.dumps(entry) + "\n")
 
     _state_log_initialized = True
 
 
-def log_event(event_type: str, **details: object) -> None:
+def log_event(
+    event_type: str,
+    **details: object,
+) -> None:
+
     global _event_log_initialized
 
     now = datetime.now()
@@ -144,7 +177,12 @@ def log_event(event_type: str, **details: object) -> None:
     }
 
     mode = "w" if not _event_log_initialized else "a"
-    with open("game_events.jsonl", mode) as f:
+
+    with open(
+        EVENT_LOG_FILE,
+        mode,
+        encoding="utf-8",
+    ) as f:
         f.write(json.dumps(event) + "\n")
 
     _event_log_initialized = True

@@ -11,9 +11,10 @@ from constants import (
     ASTEROID_MEDIUM_SPEED,
     ASTEROID_MIN_RADIUS,
     ASTEROID_SMALL_SPEED,
+    DIFFICULTY_MODIFIERS,
 )
-from entities.circleshape import CircleShape
-from utils.assets import AssetLoader
+from entities.circle_shape import CircleShape
+from utils.sprite_manager import SpriteManager
 from utils.logger import log_event
 
 
@@ -23,19 +24,22 @@ class Asteroid(CircleShape):
         x: float,
         y: float,
         radius: float,
+        difficulty: str = "NORMAL"
     ) -> None:
         super().__init__(x, y, radius)
 
         self.score = (ASTEROID_KINDS - (radius // ASTEROID_MIN_RADIUS) + 1) * 10
+        self.difficulty = difficulty
 
-        self.image = AssetLoader.get_asteroid_image(self.radius)
+        self.image = SpriteManager.get_asteroid_image(self.radius)
 
         self.rotation = random.uniform(0, 360)
         self.rotation_speed = random.uniform(-100, 100)
 
         self.lifetime = ASTEROID_LIFETIME
 
-        self.speed = self._get_speed()
+        speed_mult = DIFFICULTY_MODIFIERS.get(difficulty, {}).get("speed_mult", 1.0)
+        self.speed = self._get_speed() * speed_mult
 
         self.velocity = pygame.Vector2(0, 1).rotate(random.uniform(0, 360)) * self.speed
 
@@ -48,7 +52,7 @@ class Asteroid(CircleShape):
 
         return ASTEROID_LARGE_SPEED
 
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw(self, screen: pygame.Surface, offset: pygame.Vector2 = pygame.Vector2(0, 0)) -> None:
         if self.lifetime <= ASTEROID_BLINK_TIME:
             blink = int(self.lifetime / ASTEROID_BLINK_INTERVAL)
 
@@ -61,7 +65,7 @@ class Asteroid(CircleShape):
         )
 
         rect = image.get_rect(
-            center=self.position,
+            center=self.position - offset,
         )
 
         screen.blit(image, rect)
@@ -78,8 +82,8 @@ class Asteroid(CircleShape):
 
     def split(self) -> None:
         # Load sound only when an asteroid is destroyed.
-        # AssetLoader caches it after the first load.
-        destroy_sound = AssetLoader.get_sound("assets/sounds/destroyed.mp3")
+        # SpriteManager caches it after the first load.
+        destroy_sound = SpriteManager.get_sound("destroyed")
 
         if destroy_sound:
             destroy_sound.play()
@@ -103,12 +107,14 @@ class Asteroid(CircleShape):
             self.position.x,
             self.position.y,
             new_radius,
+            self.difficulty,
         )
 
         second = Asteroid(
             self.position.x,
             self.position.y,
             new_radius,
+            self.difficulty,
         )
 
         first.velocity = first_velocity * 1.2

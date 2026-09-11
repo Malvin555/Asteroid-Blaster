@@ -29,3 +29,42 @@ ASTEROID_SMALL_SPEED = 100
 SHOT_RADIUS = 2
 PLAYER_SHOOT_SPEED = 500
 PLAYER_SHOOT_COOLDOWN_SECONDS = 0.3
+
+PLAYER_BOOST_MULTIPLIER = 2.0
+PLAYER_BOOST_MAX_ENERGY = 100.0
+PLAYER_BOOST_DRAIN_RATE = 50.0 # per second
+PLAYER_BOOST_RECHARGE_RATE = 20.0 # per second
+
+POWERUP_RADIUS = 15
+POWERUP_LIFETIME = 15.0
+POWERUP_SPAWN_RATE_SECONDS = 20.0
+
+# Difficulty Modifiers
+DIFFICULTY_MODIFIERS = {
+    "EASY": {"spawn_rate": 1.2, "speed_mult": 0.7, "score_mult": 0.5},
+    "NORMAL": {"spawn_rate": 1.0, "speed_mult": 1.0, "score_mult": 1.0},
+    "HARD": {"spawn_rate": 0.6, "speed_mult": 1.5, "score_mult": 2.0},
+}
+
+# Asset Paths
+ASSET_IMAGES = {
+    "background": "assets/images/background.png",
+    "menu_background": "assets/images/menu_background.png",
+    "logo": "assets/images/logo.png",
+    "button": "assets/images/button.png",
+    "button_active": "assets/images/button_active.png",
+    "player": "assets/images/player.png",
+    "asteroid_small": "assets/images/asteroid_small.png",
+    "asteroid_medium": "assets/images/asteroid_medium.png",
+    "asteroid_large": "assets/images/asteroid_large.png",
+    "shot": "assets/images/shot.png",
+}
+
+ASSET_SOUNDS = {
+    "destroyed": "assets/sounds/destroyed.mp3",
+    "shoot": "assets/sounds/shoot.mp3",
+}
+
+ASSET_FONTS = {
+    "main": "assets/fonts/PressStart2P-Regular.ttf",
+}

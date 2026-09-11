@@ -2,14 +2,19 @@ from enum import Enum, auto
 
 import pygame
 
-from constants import FPS, SCREEN_HEIGHT, SCREEN_WIDTH
+from constants import FPS, SCREEN_HEIGHT, SCREEN_WIDTH, POWERUP_SPAWN_RATE_SECONDS, PLAYER_BOOST_MAX_ENERGY
 from entities.asteroid import Asteroid
-from entities.asteroidfield import AsteroidField
+from entities.asteroid_field import AsteroidField
 from entities.player import Player
 from entities.shot import Shot
+from entities.power_up import PowerUp
 from ui.menu import Menu
-from utils.assets import AssetLoader
+from ui.hud import HUD
+from systems.camera import Camera
+from utils.sprite_manager import SpriteManager
+from utils.high_score_manager import HighScoreManager
 from utils.logger import log_event, log_state
+import random
 
 
 class GameState(Enum):
@@ -30,24 +35,26 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.font = pygame.font.Font(
-            "assets/fonts/PressStart2P-Regular.ttf",
-            24,
-        )
-
-        self.background = AssetLoader.get_image("assets/images/background.png")
+        self.font = SpriteManager.get_font("main", 24) or pygame.font.SysFont("Arial", 24)
+        
+        self.background = SpriteManager.get_image("background")
 
         self.dt = 0.0
         self.running = True
         self.score = 0
+        self.high_score = HighScoreManager.load_high_score()
+        self.powerup_timer = 0.0
         self.state = GameState.MENU
 
         self.menu = Menu(self.font)
+        self.hud = HUD(self.font)
+        self.camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
         self.updatable = pygame.sprite.Group()
         self.drawable = pygame.sprite.Group()
         self.asteroids = pygame.sprite.Group()
         self.shots = pygame.sprite.Group()
+        self.power_ups = pygame.sprite.Group()
 
         self._setup_containers()
 
@@ -65,6 +72,12 @@ class Game:
 
         Shot.containers = (
             self.shots,
+            self.updatable,
+            self.drawable,
+        )
+        
+        PowerUp.containers = (
+            self.power_ups,
             self.updatable,
             self.drawable,
         )
@@ -96,6 +109,11 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
                 continue
+
+            if event.type == pygame.VIDEORESIZE:
+                self.camera.width = event.w
+                self.camera.height = event.h
+                self.camera.camera_rect.size = (event.w, event.h)
 
             if self.state == GameState.MENU:
                 self._handle_menu_event(event)
@@ -201,11 +219,13 @@ class Game:
 
     def start_game(self) -> None:
         self.score = 0
+        self.powerup_timer = 0.0
 
         self.updatable.empty()
         self.drawable.empty()
         self.asteroids.empty()
         self.shots.empty()
+        self.power_ups.empty()
 
         width, height = self.screen.get_size()
 
@@ -214,9 +234,8 @@ class Game:
             height / 2,
         )
 
-        self.asteroid_field = AsteroidField()
-
         difficulty = self.menu.get_difficulty()
+        self.asteroid_field = AsteroidField(difficulty)
 
         print(f"Starting game on {difficulty} difficulty")
 
@@ -224,8 +243,42 @@ class Game:
 
     def update(self) -> None:
         self.updatable.update(self.dt)
+        if hasattr(self, 'player'):
+            self.camera.update(self.player.position, self.dt)
+        if hasattr(self, 'asteroid_field'):
+            self.asteroid_field.camera_rect = self.camera.camera_rect
+            
+        # Spawn Powerups
+        self.powerup_timer += self.dt
+        if self.powerup_timer > POWERUP_SPAWN_RATE_SECONDS:
+            self.powerup_timer = 0.0
+            
+            # Spawn just outside camera view
+            margin = 50
+            camera = self.camera.camera_rect
+            edges = [
+                (pygame.Vector2(0, 1), lambda: pygame.Vector2(random.uniform(camera.left - margin, camera.right + margin), camera.top - margin)),
+                (pygame.Vector2(0, -1), lambda: pygame.Vector2(random.uniform(camera.left - margin, camera.right + margin), camera.bottom + margin)),
+                (pygame.Vector2(1, 0), lambda: pygame.Vector2(camera.left - margin, random.uniform(camera.top - margin, camera.bottom + margin))),
+                (pygame.Vector2(-1, 0), lambda: pygame.Vector2(camera.right + margin, random.uniform(camera.top - margin, camera.bottom + margin))),
+            ]
+            edge = random.choice(edges)
+            pos = edge[1]()
+            ptype = random.choice(["shield", "rapid_fire"])
+            PowerUp(pos.x, pos.y, ptype)
 
     def handle_collisions(self) -> None:
+        # Check powerup collisions
+        if hasattr(self, 'player'):
+            for power_up in self.power_ups:
+                if self.player.collides_with(power_up):
+                    if power_up.type_name == "shield":
+                        self.player.shield_timer = 15.0
+                    elif power_up.type_name == "rapid_fire":
+                        self.player.rapid_fire_timer = 10.0
+                    power_up.kill()
+                    log_event(f"powerup_{power_up.type_name}")
+
         for asteroid in self.asteroids:
             self._handle_player_collision(asteroid)
             self._handle_shot_collisions(asteroid)
@@ -236,11 +289,22 @@ class Game:
     ) -> None:
         if not asteroid.collides_with(self.player):
             return
+            
+        if getattr(self.player, "shield_timer", 0) > 0:
+            asteroid.kill()
+            # Disable shield when hit
+            self.player.shield_timer = 0
+            log_event("shield_absorbed_hit")
+            return
 
         log_event("player_hit")
 
         print(f"Score: {self.score}")
         print("Game over!")
+        
+        HighScoreManager.save_high_score(self.score)
+        if self.score > self.high_score:
+            self.high_score = self.score
 
         self.state = GameState.GAME_OVER
 
@@ -254,7 +318,11 @@ class Game:
 
             log_event("asteroid_shot")
 
-            self.score += asteroid.score
+            # Apply difficulty multiplier
+            difficulty = self.menu.get_difficulty()
+            from constants import DIFFICULTY_MODIFIERS
+            score_mult = DIFFICULTY_MODIFIERS.get(difficulty, {}).get("score_mult", 1.0)
+            self.score += int(asteroid.score * score_mult)
 
             asteroid.split()
             shot.kill()
@@ -263,47 +331,44 @@ class Game:
 
     def draw(self) -> None:
         if self.state == GameState.MENU:
-            self._draw_menu()
+            self._draw_background(parallax=False)
+            self.menu.draw(self.screen)
 
         elif self.state == GameState.PLAYING:
             self._draw_game()
 
         elif self.state == GameState.PAUSED:
             self._draw_game()
-            self._draw_pause_overlay()
+            self.hud.draw_pause_overlay(
+                self.screen, self._pause_button_rect(), self.menu.button, self.menu.button_selected
+            )
 
         elif self.state == GameState.GAME_OVER:
-            self._draw_game_over()
+            self._draw_background(parallax=False)
+            self.hud.draw_game_over(self.screen, self.score)
 
         pygame.display.flip()
 
-    def _draw_menu(self) -> None:
-        self._draw_background()
-        self.menu.draw(self.screen)
-
     def _draw_game(self) -> None:
-        self._draw_background()
+        self._draw_background(parallax=True)
         self._draw_game_objects()
-        self._draw_score()
-        self._draw_pause_button()
+        
+        boost_energy = getattr(self.player, "boost_energy", 0) if hasattr(self, 'player') else 0
+        shield_timer = getattr(self.player, "shield_timer", 0.0) if hasattr(self, 'player') else 0.0
+        rapid_fire_timer = getattr(self.player, "rapid_fire_timer", 0.0) if hasattr(self, 'player') else 0.0
+        
+        self.hud.draw_score(self.screen, self.score, self.high_score, boost_energy, PLAYER_BOOST_MAX_ENERGY, shield_timer, rapid_fire_timer)
+        
+        is_paused = self.state == GameState.PAUSED
+        button_image = self.menu.button_selected if is_paused else self.menu.button
+        self.hud.draw_pause_button(self.screen, self._pause_button_rect(), button_image, is_paused)
 
     def _pause_button_rect(self) -> pygame.Rect:
         width, height = self.screen.get_size()
 
-        button_width = max(
-            120,
-            min(int(width * 0.12), 180),
-        )
-
-        button_height = max(
-            50,
-            min(int(height * 0.09), 70),
-        )
-
-        margin = max(
-            16,
-            int(width * 0.02),
-        )
+        button_width = max(120, min(int(width * 0.12), 180))
+        button_height = max(50, min(int(height * 0.09), 70))
+        margin = max(16, int(width * 0.02))
 
         return pygame.Rect(
             width - button_width - margin,
@@ -312,177 +377,31 @@ class Game:
             button_height,
         )
 
-    def _draw_pause_button(self) -> None:
-        if self.state == GameState.PLAYING:
-            button = self.menu.button
-            text = "PAUSE"
-            text_color = "white"
-        else:
-            button = self.menu.button_selected
-            text = "RESUME"
-            text_color = "yellow"
-
-        rect = self._pause_button_rect()
-
-        if button is not None:
-            scaled_button = pygame.transform.smoothscale(
-                button,
-                rect.size,
-            )
-
-            self.screen.blit(
-                scaled_button,
-                rect,
-            )
-
-        surface = self.font.render(
-            text,
-            True,
-            text_color,
-        )
-
-        text_rect = surface.get_rect(
-            center=rect.center,
-        )
-
-        self.screen.blit(
-            surface,
-            text_rect,
-        )
-
-    def _draw_pause_overlay(self) -> None:
-        width, height = self.screen.get_size()
-
-        overlay = pygame.Surface(
-            (width, height),
-            pygame.SRCALPHA,
-        )
-
-        overlay.fill(
-            (0, 0, 0, 150),
-        )
-
-        self.screen.blit(
-            overlay,
-            (0, 0),
-        )
-
-        title = self.font.render(
-            "PAUSED",
-            True,
-            "yellow",
-        )
-
-        text = self.font.render(
-            "PRESS ESC TO RESUME",
-            True,
-            "white",
-        )
-
-        self.screen.blit(
-            title,
-            title.get_rect(
-                center=(
-                    width // 2,
-                    int(height * 0.42),
-                ),
-            ),
-        )
-
-        self.screen.blit(
-            text,
-            text.get_rect(
-                center=(
-                    width // 2,
-                    int(height * 0.55),
-                ),
-            ),
-        )
-
-        self._draw_pause_button()
-
-    def _draw_game_over(self) -> None:
-        self._draw_background()
-
-        width, height = self.screen.get_size()
-
-        game_over = self.font.render(
-            "GAME OVER",
-            True,
-            "white",
-        )
-
-        score = self.font.render(
-            f"SCORE: {self.score}",
-            True,
-            "white",
-        )
-
-        restart = self.font.render(
-            "PRESS ENTER",
-            True,
-            "white",
-        )
-
-        self.screen.blit(
-            game_over,
-            game_over.get_rect(
-                center=(
-                    width // 2,
-                    int(height * 0.40),
-                ),
-            ),
-        )
-
-        self.screen.blit(
-            score,
-            score.get_rect(
-                center=(
-                    width // 2,
-                    int(height * 0.50),
-                ),
-            ),
-        )
-
-        self.screen.blit(
-            restart,
-            restart.get_rect(
-                center=(
-                    width // 2,
-                    int(height * 0.60),
-                ),
-            ),
-        )
-
-    def _draw_background(self) -> None:
+    def _draw_background(self, parallax: bool = False) -> None:
         if self.background is None:
             self.screen.fill("black")
             return
 
         screen_size = self.screen.get_size()
+        bg_w, bg_h = screen_size
+        background = pygame.transform.scale(self.background, screen_size)
 
-        background = pygame.transform.scale(
-            self.background,
-            screen_size,
-        )
+        if not parallax:
+            self.screen.blit(background, (0, 0))
+            return
 
-        self.screen.blit(
-            background,
-            (0, 0),
-        )
+        # Parallax scrolling
+        parallax_factor = 0.3
+        offset_x = (self.camera.offset.x * parallax_factor) % bg_w
+        offset_y = (self.camera.offset.y * parallax_factor) % bg_h
+
+        # Draw 4 tiles to cover the screen wrapping
+        self.screen.blit(background, (-offset_x, -offset_y))
+        self.screen.blit(background, (-offset_x + bg_w, -offset_y))
+        self.screen.blit(background, (-offset_x, -offset_y + bg_h))
+        self.screen.blit(background, (-offset_x + bg_w, -offset_y + bg_h))
 
     def _draw_game_objects(self) -> None:
+        offset = self.camera.offset
         for obj in self.drawable:
-            obj.draw(self.screen)
-
-    def _draw_score(self) -> None:
-        score_text = self.font.render(
-            f"Score: {self.score}",
-            True,
-            "white",
-        )
-
-        self.screen.blit(
-            score_text,
-            (20, 20),
-        )
+            obj.draw(self.screen, offset)

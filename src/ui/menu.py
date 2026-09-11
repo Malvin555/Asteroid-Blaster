@@ -1,6 +1,6 @@
 import pygame
 
-from utils.assets import AssetLoader
+from utils.sprite_manager import SpriteManager
 
 
 class Menu:
@@ -23,13 +23,13 @@ class Menu:
     def __init__(self, font: pygame.font.Font) -> None:
         self.font = font
 
-        self.logo = AssetLoader.get_image("assets/images/logo.png")
+        self.logo = SpriteManager.get_image("logo")
 
-        self.button = AssetLoader.get_image("assets/images/button.png")
+        self.button = SpriteManager.get_image("button")
 
-        self.button_selected = AssetLoader.get_image("assets/images/button_active.png")
+        self.button_selected = SpriteManager.get_image("button_active")
 
-        self.background = AssetLoader.get_image("assets/images/menu_background.png")
+        self.background = SpriteManager.get_image("menu_background")
 
         self.selected = 0
         self.difficulty_index = 1

@@ -16,7 +16,9 @@ class Shot(CircleShape):
         if self.shoot_sound:
             self.shoot_sound.play()
 
-    def draw(self, screen: pygame.Surface, offset: pygame.Vector2 = pygame.Vector2(0, 0)) -> None:
+    def draw(
+        self, screen: pygame.Surface, offset: pygame.Vector2 = pygame.Vector2(0, 0)
+    ) -> None:
         if self.image:
             rect = self.image.get_rect(center=self.position - offset)
             screen.blit(self.image, rect)

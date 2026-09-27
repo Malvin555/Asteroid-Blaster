@@ -366,9 +366,9 @@ class Game:
     def _pause_button_rect(self) -> pygame.Rect:
         width, height = self.screen.get_size()
 
-        button_width = max(120, min(int(width * 0.12), 180))
-        button_height = max(50, min(int(height * 0.09), 70))
-        margin = max(16, int(width * 0.02))
+        button_width = max(100, min(int(width * 0.08), 140))
+        button_height = max(40, min(int(height * 0.06), 55))
+        margin = max(20, int(width * 0.03))
 
         return pygame.Rect(
             width - button_width - margin,

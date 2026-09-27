@@ -1,7 +1,5 @@
 import pygame
 
-from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-
 
 class CircleShape(pygame.sprite.Sprite):
     containers: tuple[pygame.sprite.Group, ...]

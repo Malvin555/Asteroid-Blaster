@@ -7,7 +7,7 @@ MIN_SCREEN_HEIGHT = 540
 FPS = 60
 
 UI_MARGIN = 24
-UI_FONT_SIZE = 36
+UI_FONT_SIZE = 24
 
 LINE_WIDTH = 2
 
@@ -32,21 +32,19 @@ PLAYER_SHOOT_COOLDOWN_SECONDS = 0.3
 
 PLAYER_BOOST_MULTIPLIER = 2.0
 PLAYER_BOOST_MAX_ENERGY = 100.0
-PLAYER_BOOST_DRAIN_RATE = 50.0 # per second
-PLAYER_BOOST_RECHARGE_RATE = 20.0 # per second
+PLAYER_BOOST_DRAIN_RATE = 50.0
+PLAYER_BOOST_RECHARGE_RATE = 20.0
 
 POWERUP_RADIUS = 15
 POWERUP_LIFETIME = 15.0
 POWERUP_SPAWN_RATE_SECONDS = 20.0
 
-# Difficulty Modifiers
 DIFFICULTY_MODIFIERS = {
     "EASY": {"spawn_rate": 1.2, "speed_mult": 0.7, "score_mult": 0.5},
     "NORMAL": {"spawn_rate": 1.0, "speed_mult": 1.0, "score_mult": 1.0},
     "HARD": {"spawn_rate": 0.6, "speed_mult": 1.5, "score_mult": 2.0},
 }
 
-# Asset Paths
 ASSET_IMAGES = {
     "background": "assets/images/background.png",
     "menu_background": "assets/images/menu_background.png",

@@ -390,11 +390,14 @@ class Menu:
             ),
         )
 
+        padding_x = button_width * 0.1
+        padding_y = button_height * 0.1
+
         rect = pygame.Rect(
             0,
             0,
-            button_width,
-            button_height,
+            button_width - padding_x * 2,
+            button_height - padding_y * 2,
         )
 
         rect.center = (
@@ -474,7 +477,6 @@ class Menu:
             )
 
         else:
-            # Fallback button
             pygame.draw.rect(
                 screen,
                 (
@@ -492,7 +494,6 @@ class Menu:
                 border_radius=12,
             )
 
-        # Text
         text_color = "yellow" if selected else "white"
 
         text_surface = self.font.render(

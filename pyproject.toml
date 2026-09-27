@@ -1,7 +1,7 @@
 [project]
-name = "asteroid"
-version = "0.1.0"
-description = "Add your description here"
+name = "asteroids"
+version = "0.0.8-alpha"
+description = "Just learning for fun"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

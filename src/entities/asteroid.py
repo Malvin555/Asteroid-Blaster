@@ -14,17 +14,13 @@ from constants import (
     DIFFICULTY_MODIFIERS,
 )
 from entities.circle_shape import CircleShape
-from utils.sprite_manager import SpriteManager
 from utils.logger import log_event
+from utils.sprite_manager import SpriteManager
 
 
 class Asteroid(CircleShape):
     def __init__(
-        self,
-        x: float,
-        y: float,
-        radius: float,
-        difficulty: str = "NORMAL"
+        self, x: float, y: float, radius: float, difficulty: str = "NORMAL"
     ) -> None:
         super().__init__(x, y, radius)
 
@@ -52,7 +48,9 @@ class Asteroid(CircleShape):
 
         return ASTEROID_LARGE_SPEED
 
-    def draw(self, screen: pygame.Surface, offset: pygame.Vector2 = pygame.Vector2(0, 0)) -> None:
+    def draw(
+        self, screen: pygame.Surface, offset: pygame.Vector2 = pygame.Vector2(0, 0)
+    ) -> None:
         if self.lifetime <= ASTEROID_BLINK_TIME:
             blink = int(self.lifetime / ASTEROID_BLINK_INTERVAL)
 

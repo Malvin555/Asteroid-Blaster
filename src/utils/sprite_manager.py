@@ -1,7 +1,8 @@
 import os
+
 import pygame
 
-from constants import ASTEROID_MIN_RADIUS, ASSET_IMAGES, ASSET_SOUNDS, ASSET_FONTS
+from constants import ASSET_FONTS, ASSET_IMAGES, ASSET_SOUNDS, ASTEROID_MIN_RADIUS
 
 
 class SpriteManager:
@@ -14,7 +15,7 @@ class SpriteManager:
     def get_image(cls, name: str) -> pygame.Surface | None:
         if name in cls._images:
             return cls._images[name]
-            
+
         path = ASSET_IMAGES.get(name)
         if not path or not os.path.exists(path):
             return None
@@ -35,17 +36,17 @@ class SpriteManager:
         sound = pygame.mixer.Sound(path)
         cls._sounds[name] = sound
         return sound
-        
+
     @classmethod
     def get_font(cls, name: str, size: int) -> pygame.font.Font | None:
         key = (name, size)
         if key in cls._fonts:
             return cls._fonts[key]
-            
+
         path = ASSET_FONTS.get(name)
         if not path or not os.path.exists(path):
             return None
-            
+
         font = pygame.font.Font(path, size)
         cls._fonts[key] = font
         return font
@@ -66,7 +67,9 @@ class SpriteManager:
         image = cls.get_image(image_name)
         if not image:
             image = pygame.Surface((int(radius * 2), int(radius * 2)), pygame.SRCALPHA)
-            pygame.draw.circle(image, "white", (int(radius), int(radius)), int(radius), 2)
+            pygame.draw.circle(
+                image, "white", (int(radius), int(radius)), int(radius), 2
+            )
 
         diameter = int(radius * 2)
         image = pygame.transform.scale(image, (diameter, diameter))

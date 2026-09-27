@@ -3,6 +3,7 @@ import os
 
 SCORE_FILE = "data/highscores.json"
 
+
 class HighScoreManager:
     @staticmethod
     def load_high_score() -> int:

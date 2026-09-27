@@ -1,20 +1,26 @@
+import random
 from enum import Enum, auto
 
 import pygame
 
-from constants import FPS, SCREEN_HEIGHT, SCREEN_WIDTH, POWERUP_SPAWN_RATE_SECONDS, PLAYER_BOOST_MAX_ENERGY
+from constants import (
+    FPS,
+    PLAYER_BOOST_MAX_ENERGY,
+    POWERUP_SPAWN_RATE_SECONDS,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 from entities.asteroid import Asteroid
 from entities.asteroid_field import AsteroidField
 from entities.player import Player
-from entities.shot import Shot
 from entities.power_up import PowerUp
-from ui.menu import Menu
-from ui.hud import HUD
+from entities.shot import Shot
 from systems.camera import Camera
-from utils.sprite_manager import SpriteManager
+from ui.hud import HUD
+from ui.menu import Menu
 from utils.high_score_manager import HighScoreManager
 from utils.logger import log_event, log_state
-import random
+from utils.sprite_manager import SpriteManager
 
 
 class GameState(Enum):
@@ -35,8 +41,10 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.font = SpriteManager.get_font("main", 24) or pygame.font.SysFont("Arial", 24)
-        
+        self.font = SpriteManager.get_font("main", 24) or pygame.font.SysFont(
+            "Arial", 24
+        )
+
         self.background = SpriteManager.get_image("background")
 
         self.dt = 0.0
@@ -75,7 +83,7 @@ class Game:
             self.updatable,
             self.drawable,
         )
-        
+
         PowerUp.containers = (
             self.power_ups,
             self.updatable,
@@ -243,24 +251,48 @@ class Game:
 
     def update(self) -> None:
         self.updatable.update(self.dt)
-        if hasattr(self, 'player'):
+        if hasattr(self, "player"):
             self.camera.update(self.player.position, self.dt)
-        if hasattr(self, 'asteroid_field'):
+        if hasattr(self, "asteroid_field"):
             self.asteroid_field.camera_rect = self.camera.camera_rect
-            
+
         # Spawn Powerups
         self.powerup_timer += self.dt
         if self.powerup_timer > POWERUP_SPAWN_RATE_SECONDS:
             self.powerup_timer = 0.0
-            
+
             # Spawn just outside camera view
             margin = 50
             camera = self.camera.camera_rect
             edges = [
-                (pygame.Vector2(0, 1), lambda: pygame.Vector2(random.uniform(camera.left - margin, camera.right + margin), camera.top - margin)),
-                (pygame.Vector2(0, -1), lambda: pygame.Vector2(random.uniform(camera.left - margin, camera.right + margin), camera.bottom + margin)),
-                (pygame.Vector2(1, 0), lambda: pygame.Vector2(camera.left - margin, random.uniform(camera.top - margin, camera.bottom + margin))),
-                (pygame.Vector2(-1, 0), lambda: pygame.Vector2(camera.right + margin, random.uniform(camera.top - margin, camera.bottom + margin))),
+                (
+                    pygame.Vector2(0, 1),
+                    lambda: pygame.Vector2(
+                        random.uniform(camera.left - margin, camera.right + margin),
+                        camera.top - margin,
+                    ),
+                ),
+                (
+                    pygame.Vector2(0, -1),
+                    lambda: pygame.Vector2(
+                        random.uniform(camera.left - margin, camera.right + margin),
+                        camera.bottom + margin,
+                    ),
+                ),
+                (
+                    pygame.Vector2(1, 0),
+                    lambda: pygame.Vector2(
+                        camera.left - margin,
+                        random.uniform(camera.top - margin, camera.bottom + margin),
+                    ),
+                ),
+                (
+                    pygame.Vector2(-1, 0),
+                    lambda: pygame.Vector2(
+                        camera.right + margin,
+                        random.uniform(camera.top - margin, camera.bottom + margin),
+                    ),
+                ),
             ]
             edge = random.choice(edges)
             pos = edge[1]()
@@ -269,7 +301,7 @@ class Game:
 
     def handle_collisions(self) -> None:
         # Check powerup collisions
-        if hasattr(self, 'player'):
+        if hasattr(self, "player"):
             for power_up in self.power_ups:
                 if self.player.collides_with(power_up):
                     if power_up.type_name == "shield":
@@ -289,7 +321,7 @@ class Game:
     ) -> None:
         if not asteroid.collides_with(self.player):
             return
-            
+
         if getattr(self.player, "shield_timer", 0) > 0:
             asteroid.kill()
             # Disable shield when hit
@@ -301,7 +333,7 @@ class Game:
 
         print(f"Score: {self.score}")
         print("Game over!")
-        
+
         HighScoreManager.save_high_score(self.score)
         if self.score > self.high_score:
             self.high_score = self.score
@@ -321,6 +353,7 @@ class Game:
             # Apply difficulty multiplier
             difficulty = self.menu.get_difficulty()
             from constants import DIFFICULTY_MODIFIERS
+
             score_mult = DIFFICULTY_MODIFIERS.get(difficulty, {}).get("score_mult", 1.0)
             self.score += int(asteroid.score * score_mult)
 
@@ -340,7 +373,10 @@ class Game:
         elif self.state == GameState.PAUSED:
             self._draw_game()
             self.hud.draw_pause_overlay(
-                self.screen, self._pause_button_rect(), self.menu.button, self.menu.button_selected
+                self.screen,
+                self._pause_button_rect(),
+                self.menu.button,
+                self.menu.button_selected,
             )
 
         elif self.state == GameState.GAME_OVER:
@@ -352,23 +388,43 @@ class Game:
     def _draw_game(self) -> None:
         self._draw_background(parallax=True)
         self._draw_game_objects()
-        
-        boost_energy = getattr(self.player, "boost_energy", 0) if hasattr(self, 'player') else 0
-        shield_timer = getattr(self.player, "shield_timer", 0.0) if hasattr(self, 'player') else 0.0
-        rapid_fire_timer = getattr(self.player, "rapid_fire_timer", 0.0) if hasattr(self, 'player') else 0.0
-        
-        self.hud.draw_score(self.screen, self.score, self.high_score, boost_energy, PLAYER_BOOST_MAX_ENERGY, shield_timer, rapid_fire_timer)
-        
+
+        boost_energy = (
+            getattr(self.player, "boost_energy", 0) if hasattr(self, "player") else 0
+        )
+        shield_timer = (
+            getattr(self.player, "shield_timer", 0.0)
+            if hasattr(self, "player")
+            else 0.0
+        )
+        rapid_fire_timer = (
+            getattr(self.player, "rapid_fire_timer", 0.0)
+            if hasattr(self, "player")
+            else 0.0
+        )
+
+        self.hud.draw_score(
+            self.screen,
+            self.score,
+            self.high_score,
+            boost_energy,
+            PLAYER_BOOST_MAX_ENERGY,
+            shield_timer,
+            rapid_fire_timer,
+        )
+
         is_paused = self.state == GameState.PAUSED
         button_image = self.menu.button_selected if is_paused else self.menu.button
-        self.hud.draw_pause_button(self.screen, self._pause_button_rect(), button_image, is_paused)
+        self.hud.draw_pause_button(
+            self.screen, self._pause_button_rect(), button_image, is_paused
+        )
 
     def _pause_button_rect(self) -> pygame.Rect:
         width, height = self.screen.get_size()
 
-        button_width = max(120, min(int(width * 0.12), 180))
-        button_height = max(50, min(int(height * 0.09), 70))
-        margin = max(16, int(width * 0.02))
+        button_width = max(100, min(int(width * 0.08), 140))
+        button_height = max(40, min(int(height * 0.06), 55))
+        margin = max(20, int(width * 0.03))
 
         return pygame.Rect(
             width - button_width - margin,

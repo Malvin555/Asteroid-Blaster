@@ -5,7 +5,7 @@ import pygame
 from constants import ASSET_FONTS, ASSET_IMAGES, ASSET_SOUNDS, ASTEROID_MIN_RADIUS
 
 
-class SpriteManager:button_image
+class SpriteManager:
     _asteroid_images: dict[int, pygame.Surface] = {}
     _images: dict[str, pygame.Surface] = {}
     _sounds: dict[str, pygame.mixer.Sound] = {}

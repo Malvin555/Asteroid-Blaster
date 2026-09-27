@@ -336,6 +336,10 @@ class Game:
 
         elif self.state == GameState.PLAYING:
             self._draw_game()
+            # Draw keypad overlay
+            self.hud.draw_keypad_overlay(
+                self.screen, self.player, self.font
+            )
 
         elif self.state == GameState.PAUSED:
             self._draw_game()

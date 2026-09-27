@@ -2,6 +2,8 @@ import pygame
 
 from utils.sprite_manager import SpriteManager
 
+from ui.styles import COLORS, SIZES, LAYOUT, BORDER_RADIUS
+
 
 class Menu:
     ITEMS = (
@@ -216,8 +218,7 @@ class Menu:
     ) -> None:
 
         if self.background is None:
-            screen.fill((10, 15, 30))
-
+            screen.fill(COLORS["menu_bg"])
             return
 
         image_width = self.background.get_width()
@@ -390,6 +391,7 @@ class Menu:
             ),
         )
 
+        # Add internal padding (10% of button size)
         padding_x = button_width * 0.1
         padding_y = button_height * 0.1
 
@@ -409,27 +411,6 @@ class Menu:
         )
 
         return rect
-
-    def _draw_buttons(
-        self,
-        screen: pygame.Surface,
-    ) -> None:
-
-        for index, item in enumerate(self.ITEMS):
-            selected = index == self.selected
-
-            if item == "DIFFICULTY":
-                text = self._difficulty_text()
-
-            else:
-                text = item
-
-            self._draw_button(
-                screen,
-                text,
-                index,
-                selected,
-            )
 
     def _draw_button(
         self,
@@ -477,6 +458,7 @@ class Menu:
             )
 
         else:
+            # Fallback button with style colors
             pygame.draw.rect(
                 screen,
                 (
@@ -491,9 +473,10 @@ class Menu:
                     40,
                 ),
                 draw_rect,
-                border_radius=12,
+                border_radius=BORDER_RADIUS["button"],
             )
 
+        # Text
         text_color = "yellow" if selected else "white"
 
         text_surface = self.font.render(

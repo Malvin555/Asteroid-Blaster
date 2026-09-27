@@ -1,9 +1,12 @@
 import pygame
 
+from ui.styles import COLORS, SIZES, LAYOUT, BORDER_RADIUS
+
 
 class HUD:
     def __init__(self, font: pygame.font.Font):
         self.font = font
+        self.small_font = pygame.font.Font(None, SIZES["small_font"])
 
     def draw_score(
         self,
@@ -16,37 +19,45 @@ class HUD:
         rapid_fire_timer: float = 0.0,
     ) -> None:
 
-        score_text = self.font.render(f"Score: {score}", True, "white")
+        score_text = self.font.render(f"Score: {score}", True, COLORS["white"])
         high_score_text = self.font.render(
-            f"High Score: {high_score}", True, (200, 200, 200)
+            f"High Score: {high_score}", True, COLORS["light_gray"]
         )
 
-        screen.blit(score_text, (20, 20))
-        screen.blit(high_score_text, (20, 60))
+        screen.blit(score_text, (SIZES["margin"], SIZES["margin"]))
+        screen.blit(
+            high_score_text, (SIZES["margin"], SIZES["margin"] * 3)
+        )
 
+        # Boost Meter
         width, height = screen.get_size()
-        bar_width = 200
-        bar_height = 20
-        x = 20
-        y = height - 40
+        bar_width = SIZES["boost_bar_width"]
+        bar_height = SIZES["boost_bar_height"]
+        x = SIZES["margin"]
+        y = height - SIZES["margin"] - bar_height
 
-        pygame.draw.rect(screen, (50, 50, 50), (x, y, bar_width, bar_height))
+        pygame.draw.rect(
+            screen, COLORS["boost_bar_bg"], (x, y, bar_width, bar_height)
+        )
         fill_width = int(bar_width * (boost_energy / max_boost))
-        pygame.draw.rect(screen, (0, 255, 255), (x, y, fill_width, bar_height))
+        pygame.draw.rect(
+            screen, COLORS["boost_bar_fill"], (x, y, fill_width, bar_height)
+        )
 
-        boost_label = self.font.render("BOOST", True, "white")
+        boost_label = self.font.render("BOOST", True, COLORS["white"])
         boost_label = pygame.transform.scale(
             boost_label,
             (int(boost_label.get_width() * 0.6), int(boost_label.get_height() * 0.6)),
         )
         screen.blit(boost_label, (x, y - 25))
 
-        timer_y = 100
-        small_font = pygame.font.Font(None, 24) if not self.font else self.font
+        # Powerup Timers
+        timer_y = LAYOUT["hud"]["timer_y"]
+        small_font = self.small_font
 
         if shield_timer > 0:
             shield_text = small_font.render(
-                f"Shield: {shield_timer:.1f}s", True, (100, 200, 255)
+                f"Shield: {shield_timer:.1f}s", True, COLORS["shield_color"]
             )
             shield_text = pygame.transform.scale(
                 shield_text,
@@ -55,69 +66,57 @@ class HUD:
                     int(shield_text.get_height() * 0.6),
                 ),
             )
-            screen.blit(shield_text, (20, timer_y))
+            screen.blit(shield_text, (SIZES["margin"], timer_y))
             timer_y += 30
 
         if rapid_fire_timer > 0:
             rapid_text = small_font.render(
-                f"Rapid Fire: {rapid_fire_timer:.1f}s", True, (255, 100, 100)
+                f"Rapid Fire: {rapid_fire_timer:.1f}s", True, COLORS["rapid_fire_color"]
             )
             rapid_text = pygame.transform.scale(
                 rapid_text,
                 (int(rapid_text.get_width() * 0.6), int(rapid_text.get_height() * 0.6)),
             )
-            screen.blit(rapid_text, (20, timer_y))
+            screen.blit(rapid_text, (SIZES["margin"], timer_y))
 
-    def draw_pause_overlay(
+    def draw_keypad_overlay(
         self,
         screen: pygame.Surface,
-        pause_button_rect: pygame.Rect,
-        button_image: pygame.Surface | None,
-        button_selected: pygame.Surface | None,
+        player,
+        font: pygame.font.Font,
     ) -> None:
+        """Draw WASD control overlay in corner."""
         width, height = screen.get_size()
 
-        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 150))
-        screen.blit(overlay, (0, 0))
+        # Semi-transparent background
+        overlay = pygame.Surface((200, 180), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        screen.blit(overlay, (width - 210, height - 190))
 
-        title = self.font.render("PAUSED", True, "yellow")
-        text = self.font.render("PRESS ESC TO RESUME", True, "white")
-
-        screen.blit(title, title.get_rect(center=(width // 2, int(height * 0.42))))
-        screen.blit(text, text.get_rect(center=(width // 2, int(height * 0.55))))
-
-        self.draw_pause_button(screen, pause_button_rect, button_selected, True)
-
-    def draw_pause_button(
-        self,
-        screen: pygame.Surface,
-        rect: pygame.Rect,
-        button_image: pygame.Surface | None,
-        is_paused: bool,
-    ) -> None:
-        text = "RESUME" if is_paused else "PAUSE"
-        text_color = "yellow" if is_paused else "white"
-
-        if button_image is not None:
-            scaled_button = pygame.transform.smoothscale(button_image, rect.size)
-            screen.blit(scaled_button, rect)
-
-        surface = self.font.render(text, True, text_color)
-        text_rect = surface.get_rect(center=rect.center)
-        screen.blit(surface, text_rect)
-
-    def draw_game_over(self, screen: pygame.Surface, score: int) -> None:
-        width, height = screen.get_size()
-
-        game_over = self.font.render("GAME OVER", True, "white")
-        score_text = self.font.render(f"SCORE: {score}", True, "white")
-        restart = self.font.render("PRESS ENTER", True, "white")
-
+        # Title
+        title = font.render("CONTROLS", True, COLORS["white"])
         screen.blit(
-            game_over, game_over.get_rect(center=(width // 2, int(height * 0.40)))
+            title,
+            title.get_rect(
+                center=(width - 110, height - 170)
+            ),
         )
-        screen.blit(
-            score_text, score_text.get_rect(center=(width // 2, int(height * 0.50)))
-        )
-        screen.blit(restart, restart.get_rect(center=(width // 2, int(height * 0.60))))
+
+        # Controls text
+        controls = [
+            "W - Accelerate",
+            "S - Reverse",
+            "A - Rotate Left",
+            "D - Rotate Right",
+            "SPACE - Boost",
+            "C / LEFT CLICK - Shoot",
+            "LSHIFT / RCTRL - Boost (hold)",
+        ]
+
+        control_font = pygame.font.Font(None, 20)
+        for i, text in enumerate(controls):
+            surf = control_font.render(text, True, COLORS["white"])
+            screen.blit(
+                surf,
+                (width - 200, height - 170 + 30 + i * 25),
+            )
